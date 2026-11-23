@@ -1,0 +1,31 @@
+# Updates the backend on the Oracle server after every push to main that changes backend code.
+# Needs two repository secrets (GitHub → Settings → Secrets and variables → Actions):
+#   ORACLE_HOST     the server's public IP
+#   ORACLE_SSH_KEY  the private SSH key you downloaded when creating the server (whole file content)
+# The frontend is deployed by Cloudflare Pages itself, so it is not handled here.
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+    paths: ["backend/**", "deploy/**"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull, install and restart on the server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            set -e
+            cd ~/nepal-bank-sahayak
+            git pull --ff-only
+            backend/venv/bin/pip install -q -r backend/requirements.txt
+            sudo systemctl restart nbs
+            for i in $(seq 1 30); do curl -sf http://127.0.0.1:8000/health && exit 0; sleep 5; done
+            echo "backend did not become healthy"; exit 1
