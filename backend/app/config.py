@@ -77,6 +77,7 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 30
     log_level: str = "INFO"
     auto_rebuild_index: bool = True
+    warm_up_embeddings: bool = True  # load the embedding model at start-up instead of on the first question
 
     # ── Paths (relative paths are resolved against backend/) ────────────────
     data_dir: Path = Field(default=Path("data"))

@@ -262,3 +262,21 @@ def test_reexport_keeps_verification_only_when_figure_range_and_quote_are_unchan
 
     got = {r["param_id"]: r["verified"] for r in csv.DictReader(out.open(encoding="utf-8-sig"))}
     assert got == {"a": "false", "b": "true"}
+
+
+# ── first question after start-up waited ~40 s for the embedding model ───────────────────────────────
+def test_embedding_model_is_warmed_up_at_start(built_settings, monkeypatch) -> None:
+    import app.main as main
+    from app.store import IndexStore
+
+    calls = []
+    orig = IndexStore.embeddings.fget
+
+    def spy(self):
+        calls.append(1)
+        return orig(self)
+
+    monkeypatch.setattr(IndexStore, "embeddings", property(spy))
+    monkeypatch.setattr(built_settings, "auto_rebuild_index", False)
+    main.build_engine(built_settings)
+    assert calls, "embedding model was not loaded at start-up"

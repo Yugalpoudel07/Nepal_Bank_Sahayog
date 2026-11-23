@@ -78,6 +78,12 @@ def build_engine(settings: Settings) -> BankRAGEngine:
 
         ensure_index(settings)
     store = IndexStore(settings)
+    if settings.warm_up_embeddings:
+        # Load the embedding model now, so the first user question does not wait ~40 s for it.
+        try:
+            store.embeddings.embed_query("warm up")
+        except Exception as exc:  # the server still starts; the model loads on the first question
+            log.warning("embedding warm-up failed", extra={"kv": {"error": str(exc)}})
     try:
         llm = get_llm(settings)
     except LLMUnavailable as exc:
